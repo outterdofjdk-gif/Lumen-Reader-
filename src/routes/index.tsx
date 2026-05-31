@@ -159,10 +159,10 @@ function Home() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-10">
+      <main className="px-4 sm:px-6 lg:px-10 py-6 sm:py-10 space-y-12">
         {/* Hero / Input */}
-        <section className="space-y-5">
-          <div className="text-center max-w-2xl mx-auto space-y-3">
+        <section className="space-y-5 max-w-4xl mx-auto">
+          <div className="text-center space-y-3">
             <h1 className="font-reading text-3xl sm:text-5xl font-semibold tracking-tight">
               Read English with quiet confidence.
             </h1>
@@ -179,31 +179,35 @@ function Home() {
 
         {/* Reader */}
         <section className="space-y-4">
-          <ControlBar
-            fontSize={prefs.fontSize}
-            setFontSize={(n) => update("fontSize", n)}
-            dark={prefs.dark}
-            setDark={(b) => update("dark", b)}
-            accent={prefs.accent}
-            setAccent={(a) => update("accent", a)}
-            rate={prefs.rate}
-            setRate={(r) => update("rate", r)}
-            showTranslations={prefs.showTranslations}
-            setShowTranslations={(b) => update("showTranslations", b)}
-          />
+          <div className="max-w-5xl mx-auto">
+            <ControlBar
+              fontSize={prefs.fontSize}
+              setFontSize={(n) => update("fontSize", n)}
+              dark={prefs.dark}
+              setDark={(b) => update("dark", b)}
+              accent={prefs.accent}
+              setAccent={(a) => update("accent", a)}
+              rate={prefs.rate}
+              setRate={(r) => update("rate", r)}
+              showTranslations={prefs.showTranslations}
+              setShowTranslations={(b) => update("showTranslations", b)}
+            />
+          </div>
 
-          <div className="grid lg:grid-cols-[1fr_320px] gap-5">
-            <div className="rounded-2xl bg-card border border-border p-5 sm:p-8 shadow-sm min-h-[300px]">
-              <ArticleReader
-                text={text}
-                fontSize={prefs.fontSize}
-                accent={prefs.accent}
-                rate={prefs.rate}
-                showTranslations={prefs.showTranslations}
-                onSpoken={handleSpoken}
-              />
+          <div className="grid xl:grid-cols-[minmax(0,1fr)_340px] gap-6 xl:gap-10 items-start">
+            <div className="rounded-2xl bg-card border border-border shadow-sm">
+              <div className="mx-auto max-w-[72ch] px-5 sm:px-10 lg:px-16 py-8 sm:py-12">
+                <ArticleReader
+                  text={text}
+                  fontSize={prefs.fontSize}
+                  accent={prefs.accent}
+                  rate={prefs.rate}
+                  showTranslations={prefs.showTranslations}
+                  onSpoken={handleSpoken}
+                />
+              </div>
             </div>
-            <aside className="space-y-4">
+            <aside className="space-y-4 xl:sticky xl:top-20">
               <Statistics
                 text={text}
                 spokenCount={spokenWords.length}
@@ -215,12 +219,14 @@ function Home() {
         </section>
 
         {/* Feed */}
-        <ArticlesFeed
-          onLoad={(t) => {
-            setText(t);
-            setSpokenWords([]);
-          }}
-        />
+        <div className="max-w-6xl mx-auto w-full">
+          <ArticlesFeed
+            onLoad={(t) => {
+              setText(t);
+              setSpokenWords([]);
+            }}
+          />
+        </div>
 
         <footer className="text-center text-xs text-muted-foreground py-6">
           Built for thoughtful readers · Translations via MyMemory · Pronunciation via your
