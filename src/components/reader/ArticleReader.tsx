@@ -19,23 +19,29 @@ export function ArticleReader({
   showTranslations,
   onSpoken,
 }: Props) {
-  // tokenize while preserving punctuation/whitespace
-  const tokens = useMemo(() => {
-    return text.split(/(\s+)/).flatMap((chunk, i) => {
-      if (/^\s+$/.test(chunk)) return [{ kind: "space" as const, value: chunk, key: `s${i}` }];
-      // split a token into (leading punct)(word)(trailing punct)
+  type Token =
+    | { kind: "text"; value: string; key: string }
+    | { kind: "word"; value: string; key: string };
+
+  const tokens = useMemo<Token[]>(() => {
+    const out: Token[] = [];
+    text.split(/(\s+)/).forEach((chunk, i) => {
+      if (!chunk) return;
+      if (/^\s+$/.test(chunk)) {
+        out.push({ kind: "text", value: chunk, key: `s${i}` });
+        return;
+      }
       const m = chunk.match(/^([^A-Za-z0-9'’-]*)([A-Za-z][A-Za-z'’-]*)(.*)$/);
-      if (!m) return [{ kind: "text" as const, value: chunk, key: `t${i}` }];
+      if (!m) {
+        out.push({ kind: "text", value: chunk, key: `t${i}` });
+        return;
+      }
       const [, pre, word, post] = m;
-      const parts: Array<
-        | { kind: "text"; value: string; key: string }
-        | { kind: "word"; value: string; key: string }
-      > = [];
-      if (pre) parts.push({ kind: "text", value: pre, key: `p${i}` });
-      parts.push({ kind: "word", value: word, key: `w${i}` });
-      if (post) parts.push({ kind: "text", value: post, key: `po${i}` });
-      return parts;
+      if (pre) out.push({ kind: "text", value: pre, key: `p${i}` });
+      out.push({ kind: "word", value: word, key: `w${i}` });
+      if (post) out.push({ kind: "text", value: post, key: `po${i}` });
     });
+    return out;
   }, [text]);
 
   if (!text.trim()) {
