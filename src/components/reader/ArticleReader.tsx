@@ -69,6 +69,7 @@ export function ArticleReader({
               rate={rate}
               showTranslations={showTranslations}
               onSpoken={onSpoken}
+              onOpenPopup={onOpenPopup}
             />
           );
         }
