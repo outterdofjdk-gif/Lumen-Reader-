@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { VolumeX } from "lucide-react";
 import { lookupWord } from "@/lib/dictionary";
 import { translateWord } from "@/lib/reader-cache";
 import type { Accent } from "@/lib/tts";
@@ -17,6 +18,7 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
   const [open, setOpen] = useState(false);
   const [translation, setTranslation] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [noAudio, setNoAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ref = useRef<HTMLSpanElement | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -65,16 +67,20 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
     let audioUrl = entry?.audio || "";
     if (audioUrl.startsWith("//")) audioUrl = "https:" + audioUrl;
     if (audioUrl) {
+      setNoAudio(false);
       try {
-        if (audioRef.current) {
-          audioRef.current.pause();
-        }
+        if (audioRef.current) audioRef.current.pause();
         const audio = new Audio(audioUrl);
         audioRef.current = audio;
-        await audio.play().catch(() => {});
-      } catch {
-        /* ignore */
+        await audio.play().catch((err) => {
+          console.warn("[dict] Audio status: play failed", word, err);
+        });
+      } catch (err) {
+        console.warn("[dict] Audio status: error", word, err);
       }
+    } else {
+      setNoAudio(true);
+      console.warn("[dict] Audio status: missing (no Cambridge audio for)", word);
     }
   };
 
@@ -90,10 +96,16 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
         <span
           role="tooltip"
           dir="rtl"
-          className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-40 whitespace-nowrap rounded-md bg-foreground text-background text-xs font-medium px-2 py-1 shadow-md animate-in fade-in zoom-in-95"
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-40 whitespace-nowrap rounded-md bg-foreground text-background text-xs font-medium px-2 py-1 shadow-md animate-in fade-in zoom-in-95 inline-flex items-center gap-1"
           style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
         >
-          {loading ? "…" : translation}
+          <span>{loading ? "…" : translation}</span>
+          {!loading && noAudio && (
+            <VolumeX
+              aria-label="No pronunciation available"
+              className="size-3 opacity-60"
+            />
+          )}
           <span
             className="absolute left-1/2 -translate-x-1/2 top-full size-0 border-x-4 border-x-transparent border-t-4 border-t-foreground"
           />
