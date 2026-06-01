@@ -18,6 +18,7 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
   const [open, setOpen] = useState(false);
   const [translation, setTranslation] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [noAudio, setNoAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ref = useRef<HTMLSpanElement | null>(null);
   const timerRef = useRef<number | null>(null);
