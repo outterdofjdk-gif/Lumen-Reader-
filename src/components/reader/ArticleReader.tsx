@@ -9,6 +9,7 @@ type Props = {
   rate: number;
   showTranslations: boolean;
   onSpoken: (word: string) => void;
+  onOpenPopup: (word: string) => void;
 };
 
 export function ArticleReader({
@@ -18,6 +19,7 @@ export function ArticleReader({
   rate,
   showTranslations,
   onSpoken,
+  onOpenPopup,
 }: Props) {
   type Token =
     | { kind: "text"; value: string; key: string }
@@ -67,6 +69,7 @@ export function ArticleReader({
               rate={rate}
               showTranslations={showTranslations}
               onSpoken={onSpoken}
+              onOpenPopup={onOpenPopup}
             />
           );
         }

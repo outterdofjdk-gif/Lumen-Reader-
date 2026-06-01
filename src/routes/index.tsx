@@ -9,6 +9,7 @@ import { ArticleReader } from "@/components/reader/ArticleReader";
 import { Statistics } from "@/components/reader/Statistics";
 import { ArticlesFeed } from "@/components/reader/ArticlesFeed";
 import { SavedWords, saveWord } from "@/components/reader/SavedWords";
+import { WordPopup } from "@/components/reader/WordPopup";
 import type { Accent } from "@/lib/tts";
 
 export const Route = createFileRoute("/")({
@@ -71,6 +72,8 @@ function Home() {
   const [text, setText] = useState("");
   const [spokenWords, setSpokenWords] = useState<string[]>([]);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [popupWord, setPopupWord] = useState<string | null>(null);
+  const [popupOpen, setPopupOpen] = useState(false);
 
   useEffect(() => {
     setPrefs(loadPrefs());
@@ -112,6 +115,13 @@ function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-tint via-background to-background">
       <Toaster richColors position="top-center" />
+      <WordPopup
+        word={popupWord}
+        open={popupOpen}
+        onOpenChange={setPopupOpen}
+        accent={prefs.accent}
+        rate={prefs.rate}
+      />
 
       {showWelcome && (
         <div
@@ -204,6 +214,10 @@ function Home() {
                   rate={prefs.rate}
                   showTranslations={prefs.showTranslations}
                   onSpoken={handleSpoken}
+                  onOpenPopup={(w) => {
+                    setPopupWord(w);
+                    setPopupOpen(true);
+                  }}
                 />
               </div>
             </div>
