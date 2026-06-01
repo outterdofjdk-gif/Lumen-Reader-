@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { VolumeX } from "lucide-react";
 import { lookupWord } from "@/lib/dictionary";
 import { translateWord } from "@/lib/reader-cache";
 import type { Accent } from "@/lib/tts";
