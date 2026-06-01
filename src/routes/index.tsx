@@ -9,7 +9,7 @@ import { ArticleReader } from "@/components/reader/ArticleReader";
 import { Statistics } from "@/components/reader/Statistics";
 import { ArticlesFeed } from "@/components/reader/ArticlesFeed";
 import { SavedWords, saveWord } from "@/components/reader/SavedWords";
-import { WordPopup } from "@/components/reader/WordPopup";
+
 import type { Accent } from "@/lib/tts";
 
 export const Route = createFileRoute("/")({
