@@ -207,6 +207,10 @@ function Home() {
                   rate={prefs.rate}
                   showTranslations={prefs.showTranslations}
                   onSpoken={handleSpoken}
+                  onOpenPopup={(w) => {
+                    setPopupWord(w);
+                    setPopupOpen(true);
+                  }}
                 />
               </div>
             </div>
