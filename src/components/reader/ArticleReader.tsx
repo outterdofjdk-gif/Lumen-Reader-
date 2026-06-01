@@ -19,6 +19,7 @@ export function ArticleReader({
   rate,
   showTranslations,
   onSpoken,
+  onOpenPopup,
 }: Props) {
   type Token =
     | { kind: "text"; value: string; key: string }
