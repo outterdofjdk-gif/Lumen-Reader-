@@ -96,10 +96,16 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
         <span
           role="tooltip"
           dir="rtl"
-          className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-40 whitespace-nowrap rounded-md bg-foreground text-background text-xs font-medium px-2 py-1 shadow-md animate-in fade-in zoom-in-95"
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-40 whitespace-nowrap rounded-md bg-foreground text-background text-xs font-medium px-2 py-1 shadow-md animate-in fade-in zoom-in-95 inline-flex items-center gap-1"
           style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
         >
-          {loading ? "…" : translation}
+          <span>{loading ? "…" : translation}</span>
+          {!loading && noAudio && (
+            <VolumeX
+              aria-label="No pronunciation available"
+              className="size-3 opacity-60"
+            />
+          )}
           <span
             className="absolute left-1/2 -translate-x-1/2 top-full size-0 border-x-4 border-x-transparent border-t-4 border-t-foreground"
           />
