@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { ControlBar } from "@/components/reader/ControlBar";
@@ -9,6 +8,9 @@ import { ArticleReader } from "@/components/reader/ArticleReader";
 import { Statistics } from "@/components/reader/Statistics";
 import { ArticlesFeed } from "@/components/reader/ArticlesFeed";
 import { SavedWords, saveWord } from "@/components/reader/SavedWords";
+import { SiteHeader } from "@/components/layout/SiteHeader";
+import { Hero } from "@/components/home/Hero";
+import { ReadingProgress } from "@/components/reader/ReadingProgress";
 
 import type { Accent } from "@/lib/tts";
 
@@ -19,13 +21,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "An advanced English article reader with instant Arabic translations, natural pronunciation, and a calm reading experience.",
+          "A premium English reader with instant Arabic translations, Cambridge pronunciation, and a calm, focused reading experience.",
       },
       { property: "og:title", content: "Lumen Reader" },
       {
         property: "og:description",
         content:
-          "Tap any word for instant translation and pronunciation. Read English articles beautifully.",
+          "Tap any English word for instant Arabic meaning and natural pronunciation. Read like Medium, learn like Cambridge.",
       },
     ],
     links: [
@@ -33,7 +35,7 @@ export const Route = createFileRoute("/")({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Poppins:wght@300;400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap",
       },
     ],
   }),
@@ -50,7 +52,7 @@ type Prefs = {
 
 const PREFS_KEY = "reader.prefs.v1";
 const DEFAULT: Prefs = {
-  fontSize: 18,
+  fontSize: 19,
   dark: false,
   accent: "en-US",
   rate: 1,
@@ -71,17 +73,15 @@ function Home() {
   const [hydrated, setHydrated] = useState(false);
   const [text, setText] = useState("");
   const [spokenWords, setSpokenWords] = useState<string[]>([]);
-  const [showWelcome, setShowWelcome] = useState(false);
-  const [popupWord, setPopupWord] = useState<string | null>(null);
-  const [popupOpen, setPopupOpen] = useState(false);
+
+  const readerRef = useRef<HTMLDivElement | null>(null);
+  const feedRef = useRef<HTMLDivElement | null>(null);
+  const savedRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setPrefs(loadPrefs());
     setHydrated(true);
-    if (!localStorage.getItem("reader.welcomed.v1")) {
-      setShowWelcome(true);
-      localStorage.setItem("reader.welcomed.v1", "1");
-    }
   }, []);
 
   useEffect(() => {
@@ -95,7 +95,6 @@ function Home() {
   const update = <K extends keyof Prefs>(k: K, v: Prefs[K]) =>
     setPrefs((p) => ({ ...p, [k]: v }));
 
-  // double-tap on a word to save it
   const tapTimers = useMemo(() => new Map<string, number>(), []);
   const handleSpoken = (word: string) => {
     setSpokenWords((s) => [...s, word.toLowerCase()]);
@@ -112,111 +111,81 @@ function Home() {
 
   const uniqueSpoken = useMemo(() => new Set(spokenWords).size, [spokenWords]);
 
+  const scrollTo = (el: HTMLElement | null) =>
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-tint via-background to-background">
+    <div className="min-h-screen bg-background text-foreground">
       <Toaster richColors position="top-center" />
+      <ReadingProgress targetRef={readerRef} />
 
+      <SiteHeader
+        dark={prefs.dark}
+        setDark={(b) => update("dark", b)}
+        onJumpToFeed={() => scrollTo(feedRef.current)}
+        onJumpToSaved={() => scrollTo(savedRef.current)}
+      />
 
+      <main>
+        <Hero
+          onStart={() => scrollTo(inputRef.current)}
+          onBrowse={() => scrollTo(feedRef.current)}
+        />
 
-      {showWelcome && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4 animate-in fade-in"
-          onClick={() => setShowWelcome(false)}
+        {/* Input strip */}
+        <section
+          ref={inputRef}
+          className="max-w-3xl mx-auto px-4 sm:px-6 -mt-2 sm:-mt-4 mb-16 sm:mb-24 scroll-mt-24"
         >
-          <div
-            className="max-w-md w-full bg-card rounded-2xl p-7 border border-border shadow-xl animate-in zoom-in-95"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="size-11 rounded-xl bg-primary/15 text-primary grid place-items-center">
-                <Sparkles className="size-5" />
-              </div>
-              <h2 className="font-reading text-2xl font-semibold">Welcome to Lumen</h2>
+          <div className="rounded-2xl bg-surface border border-border-subtle shadow-card p-4 sm:p-6 animate-fade-up">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">
+              Start
             </div>
-            <p className="text-muted-foreground leading-relaxed mb-5">
-              Read English articles with the gentle help of instant translations and
-              natural pronunciation. <strong>Tap any word</strong> to hear it and see
-              its Arabic meaning. Tap twice to save it to your word list.
-            </p>
-            <button
-              onClick={() => setShowWelcome(false)}
-              className="w-full rounded-lg bg-primary text-primary-foreground py-2.5 font-medium hover:bg-primary/90 transition-colors"
-            >
-              Start reading
-            </button>
-          </div>
-        </div>
-      )}
-
-      <header className="border-b border-border bg-card/70 backdrop-blur-sm sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="size-9 rounded-lg bg-primary text-primary-foreground grid place-items-center shadow-sm">
-              <BookOpen className="size-5" />
-            </div>
-            <div className="leading-tight">
-              <div className="font-reading font-semibold text-lg">Lumen Reader</div>
-              <div className="text-[11px] text-muted-foreground hidden sm:block">
-                Read · Tap · Understand
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="px-4 sm:px-6 lg:px-10 py-6 sm:py-10 space-y-12">
-        {/* Hero / Input */}
-        <section className="space-y-5 max-w-4xl mx-auto">
-          <div className="text-center space-y-3">
-            <h1 className="font-reading text-3xl sm:text-5xl font-semibold tracking-tight">
-              Read English with quiet confidence.
-            </h1>
-            <p className="text-muted-foreground sm:text-lg">
-              Paste an article, fetch one from the web, or pick from today's feed. Every
-              word becomes a tap away from meaning and pronunciation.
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-card border border-border p-4 sm:p-6 shadow-sm">
             <InputPanel text={text} setText={setText} />
           </div>
         </section>
 
         {/* Reader */}
-        <section className="space-y-4">
-          <div className="max-w-5xl mx-auto">
-            <ControlBar
-              fontSize={prefs.fontSize}
-              setFontSize={(n) => update("fontSize", n)}
-              dark={prefs.dark}
-              setDark={(b) => update("dark", b)}
-              accent={prefs.accent}
-              setAccent={(a) => update("accent", a)}
-              rate={prefs.rate}
-              setRate={(r) => update("rate", r)}
-              showTranslations={prefs.showTranslations}
-              setShowTranslations={(b) => update("showTranslations", b)}
-            />
-          </div>
-
-          <div className="grid xl:grid-cols-[minmax(0,1fr)_340px] gap-6 xl:gap-10 items-start">
-            <div className="rounded-2xl bg-card border border-border shadow-sm">
-              <div className="mx-auto max-w-[72ch] px-5 sm:px-10 lg:px-16 py-8 sm:py-12">
-                <ArticleReader
-                  text={text}
+        <section
+          id="read"
+          ref={readerRef}
+          className="px-4 sm:px-6 lg:px-10 pb-20 scroll-mt-20"
+        >
+          <div className="max-w-7xl mx-auto grid lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_320px] gap-8 lg:gap-12 items-start">
+            <div className="min-w-0 space-y-6">
+              <div className="flex justify-center">
+                <ControlBar
                   fontSize={prefs.fontSize}
+                  setFontSize={(n) => update("fontSize", n)}
+                  dark={prefs.dark}
+                  setDark={(b) => update("dark", b)}
                   accent={prefs.accent}
+                  setAccent={(a) => update("accent", a)}
                   rate={prefs.rate}
+                  setRate={(r) => update("rate", r)}
                   showTranslations={prefs.showTranslations}
-                  onSpoken={handleSpoken}
-                  onOpenPopup={(w) => {
-                    setPopupWord(w);
-                    setPopupOpen(true);
-                  }}
+                  setShowTranslations={(b) => update("showTranslations", b)}
                 />
               </div>
+
+              <div
+                className="rounded-3xl bg-reading-bg border border-border-subtle shadow-card"
+                style={{ boxShadow: "var(--shadow-elevated)" }}
+              >
+                <div className="mx-auto max-w-[820px] px-5 sm:px-10 md:px-16 lg:px-20 py-10 sm:py-16 lg:py-20">
+                  <ArticleReader
+                    text={text}
+                    fontSize={prefs.fontSize}
+                    accent={prefs.accent}
+                    rate={prefs.rate}
+                    showTranslations={prefs.showTranslations}
+                    onSpoken={handleSpoken}
+                  />
+                </div>
+              </div>
             </div>
-            <aside className="space-y-4 xl:sticky xl:top-20">
+
+            <aside ref={savedRef} className="space-y-4 lg:sticky lg:top-24 scroll-mt-24">
               <Statistics
                 text={text}
                 spokenCount={spokenWords.length}
@@ -228,18 +197,28 @@ function Home() {
         </section>
 
         {/* Feed */}
-        <div className="max-w-6xl mx-auto w-full">
+        <section
+          ref={feedRef}
+          className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-10 py-16 sm:py-24 border-t border-border-subtle scroll-mt-20"
+        >
           <ArticlesFeed
             onLoad={(t) => {
               setText(t);
               setSpokenWords([]);
+              scrollTo(readerRef.current);
             }}
           />
-        </div>
+        </section>
 
-        <footer className="text-center text-xs text-muted-foreground py-6">
-          Built for thoughtful readers · Translations via MyMemory · Pronunciation via your
-          browser's Web Speech API
+        <footer className="border-t border-border-subtle">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+            <div className="font-reading text-foreground/70">
+              Lumen Reader — designed for thoughtful readers.
+            </div>
+            <div>
+              Pronunciation by Cambridge · Translations by MyMemory
+            </div>
+          </div>
         </footer>
       </main>
     </div>

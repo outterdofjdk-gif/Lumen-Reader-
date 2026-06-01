@@ -72,48 +72,55 @@ export function SavedWords() {
   };
 
   return (
-    <section className="rounded-xl bg-card border border-border p-4 space-y-3">
+    <section
+      id="saved"
+      className="rounded-2xl bg-surface border border-border-subtle p-4 sm:p-5 shadow-card space-y-3"
+    >
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-reading text-lg font-semibold flex items-center gap-2">
-          <Bookmark className="size-4 text-primary" /> My Words
-          <span className="text-sm text-muted-foreground font-sans font-normal">
-            ({words.length})
+        <h3 className="font-reading text-lg font-semibold flex items-center gap-2 tracking-tight">
+          <Bookmark className="size-4 text-primary" /> Saved
+          <span className="text-sm text-muted-foreground font-sans font-normal tabular-nums">
+            {words.length}
           </span>
         </h3>
-        <div className="flex gap-1">
+        <div className="flex gap-0.5">
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
+            className="size-8 rounded-full"
             onClick={exportCsv}
             disabled={!words.length}
+            aria-label="Export CSV"
           >
-            <Download className="size-4" /> CSV
+            <Download className="size-3.5" />
           </Button>
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
+            className="size-8 rounded-full"
             onClick={clearAll}
             disabled={!words.length}
+            aria-label="Clear all"
           >
-            <Trash2 className="size-4" />
+            <Trash2 className="size-3.5" />
           </Button>
         </div>
       </div>
       {words.length === 0 ? (
-        <p className="text-sm text-muted-foreground italic">
+        <p className="text-sm text-muted-foreground leading-relaxed">
           Tap any word twice while reading to save it here.
         </p>
       ) : (
-        <ul className="max-h-72 overflow-y-auto divide-y divide-border -mx-1">
+        <ul className="max-h-72 overflow-y-auto scrollbar-thin divide-y divide-border-subtle -mx-1">
           {words.map((w) => (
             <li
               key={w}
-              className="flex items-center justify-between gap-2 px-1 py-2"
+              className="group flex items-center justify-between gap-2 px-1 py-2 hover:bg-surface-hover rounded-md transition-colors"
             >
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-foreground">{w}</div>
+                <div className="font-medium text-foreground text-sm">{w}</div>
                 <div
-                  className="text-xs text-muted-foreground truncate"
+                  className="text-xs text-muted-foreground truncate font-arabic"
                   dir="rtl"
                 >
                   {translations[w] || "…"}
@@ -122,10 +129,11 @@ export function SavedWords() {
               <Button
                 variant="ghost"
                 size="icon"
+                className="size-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={() => remove(w)}
                 aria-label="Remove"
               >
-                <Trash2 className="size-3.5" />
+                <Trash2 className="size-3" />
               </Button>
             </li>
           ))}

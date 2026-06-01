@@ -10,7 +10,6 @@ type Props = {
   rate: number;
   showTranslations: boolean;
   onSpoken?: (word: string) => void;
-  // kept for compatibility with parent; not used anymore
   onOpenPopup?: (word: string) => void;
 };
 
@@ -32,7 +31,7 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
 
   const scheduleClose = () => {
     clearTimer();
-    timerRef.current = window.setTimeout(() => setOpen(false), 2500);
+    timerRef.current = window.setTimeout(() => setOpen(false), 2600);
   };
 
   useEffect(() => {
@@ -63,7 +62,6 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
     setLoading(false);
     scheduleClose();
 
-    // Play Cambridge-style audio from dictionary API (no TTS fallback)
     let audioUrl = entry?.audio || "";
     if (audioUrl.startsWith("//")) audioUrl = "https:" + audioUrl;
     if (audioUrl) {
@@ -80,7 +78,6 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
       }
     } else {
       setNoAudio(true);
-      console.warn("[dict] Audio status: missing (no Cambridge audio for)", word);
     }
   };
 
@@ -96,8 +93,11 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
         <span
           role="tooltip"
           dir="rtl"
-          className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-40 whitespace-nowrap rounded-md bg-foreground text-background text-xs font-medium px-2 py-1 shadow-md animate-in fade-in zoom-in-95 inline-flex items-center gap-1"
-          style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-40 whitespace-nowrap rounded-lg bg-foreground text-background text-[13px] font-medium px-2.5 py-1.5 inline-flex items-center gap-1.5 font-arabic"
+          style={{
+            animation: "var(--animate-tooltip-in)",
+            boxShadow: "var(--shadow-popover)",
+          }}
         >
           <span>{loading ? "…" : translation}</span>
           {!loading && noAudio && (
@@ -106,9 +106,7 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
               className="size-3 opacity-60"
             />
           )}
-          <span
-            className="absolute left-1/2 -translate-x-1/2 top-full size-0 border-x-4 border-x-transparent border-t-4 border-t-foreground"
-          />
+          <span className="absolute left-1/2 -translate-x-1/2 top-full size-0 border-x-[5px] border-x-transparent border-t-[5px] border-t-foreground" />
         </span>
       )}
     </span>

@@ -1,13 +1,4 @@
-import {
-  Minus,
-  Plus,
-  RotateCcw,
-  Sun,
-  Moon,
-  Languages,
-  Gauge,
-  Globe,
-} from "lucide-react";
+import { Minus, Plus, RotateCcw, Languages, Gauge, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -32,15 +23,13 @@ type Props = {
   setShowTranslations: (b: boolean) => void;
 };
 
-const BASE = 18;
+const BASE = 19;
 const MIN = BASE * 0.8;
-const MAX = BASE * 2;
+const MAX = BASE * 1.8;
 
 export function ControlBar({
   fontSize,
   setFontSize,
-  dark,
-  setDark,
   accent,
   setAccent,
   rate,
@@ -49,64 +38,58 @@ export function ControlBar({
   setShowTranslations,
 }: Props) {
   return (
-    <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-card border border-border shadow-sm">
-      <div className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center gap-2 p-2 rounded-full bg-surface border border-border-subtle shadow-card">
+      <div className="flex items-center gap-0.5 pl-1">
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          onClick={() => setFontSize(Math.max(MIN, fontSize / 1.2))}
+          className="rounded-full size-8"
+          onClick={() => setFontSize(Math.max(MIN, fontSize / 1.1))}
           aria-label="Decrease font"
         >
-          <Minus className="size-4" />
+          <Minus className="size-3.5" />
         </Button>
-        <span className="text-xs font-mono w-10 text-center text-muted-foreground">
+        <span className="text-[11px] font-mono w-9 text-center text-muted-foreground tabular-nums">
           {Math.round((fontSize / BASE) * 100)}%
         </span>
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          onClick={() => setFontSize(Math.min(MAX, fontSize * 1.2))}
+          className="rounded-full size-8"
+          onClick={() => setFontSize(Math.min(MAX, fontSize * 1.1))}
           aria-label="Increase font"
         >
-          <Plus className="size-4" />
+          <Plus className="size-3.5" />
         </Button>
         <Button
           variant="ghost"
           size="icon"
+          className="rounded-full size-8"
           onClick={() => setFontSize(BASE)}
           aria-label="Reset font"
         >
-          <RotateCcw className="size-4" />
+          <RotateCcw className="size-3.5" />
         </Button>
       </div>
 
-      <div className="h-6 w-px bg-border mx-1" />
-
-      <Toggle
-        pressed={dark}
-        onPressedChange={setDark}
-        aria-label="Toggle dark mode"
-        className="data-[state=on]:bg-accent"
-      >
-        {dark ? <Moon className="size-4" /> : <Sun className="size-4" />}
-      </Toggle>
+      <div className="h-5 w-px bg-border mx-0.5" />
 
       <Toggle
         pressed={showTranslations}
         onPressedChange={setShowTranslations}
         aria-label="Toggle translations"
-        className="data-[state=on]:bg-accent gap-1.5"
+        className="rounded-full h-8 px-3 gap-1.5 data-[state=on]:bg-accent text-xs"
       >
-        <Languages className="size-4" />
-        <span className="text-xs hidden sm:inline">Translate</span>
+        <Languages className="size-3.5" />
+        <span className="hidden sm:inline">Translate</span>
       </Toggle>
 
-      <div className="h-6 w-px bg-border mx-1" />
+      <div className="h-5 w-px bg-border mx-0.5" />
 
-      <div className="flex items-center gap-1.5">
-        <Globe className="size-4 text-muted-foreground" />
+      <div className="flex items-center gap-1.5 px-1">
+        <Globe className="size-3.5 text-muted-foreground" />
         <Select value={accent} onValueChange={(v) => setAccent(v as Accent)}>
-          <SelectTrigger className="h-9 w-[110px]">
+          <SelectTrigger className="h-8 w-[105px] rounded-full border-0 bg-transparent text-xs focus:ring-0 shadow-none px-2">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -116,10 +99,10 @@ export function ControlBar({
         </Select>
       </div>
 
-      <div className="flex items-center gap-1.5">
-        <Gauge className="size-4 text-muted-foreground" />
+      <div className="flex items-center gap-1.5 px-1">
+        <Gauge className="size-3.5 text-muted-foreground" />
         <Select value={String(rate)} onValueChange={(v) => setRate(Number(v))}>
-          <SelectTrigger className="h-9 w-[100px]">
+          <SelectTrigger className="h-8 w-[88px] rounded-full border-0 bg-transparent text-xs focus:ring-0 shadow-none px-2">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -32,13 +32,12 @@ export function InputPanel({ text, setText }: Props) {
     if (!url.trim()) return;
     setLoadingUrl(true);
     try {
-      // Use Jina Reader proxy — no key required, returns plain text
       const target = `https://r.jina.ai/${url.trim()}`;
       const res = await fetch(target);
       if (!res.ok) throw new Error();
       const content = await res.text();
       setText(content.slice(0, 20000));
-      toast.success("Article fetched from URL");
+      toast.success("Article fetched");
     } catch {
       toast.error("Couldn't fetch that URL");
     } finally {
@@ -50,17 +49,21 @@ export function InputPanel({ text, setText }: Props) {
     <div className="space-y-3">
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
-          <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
             type="url"
-            placeholder="Paste an article URL…"
+            placeholder="Paste an article URL"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            className="pl-9"
+            className="pl-10 h-11 rounded-full bg-surface border-border-subtle focus-visible:ring-1"
             onKeyDown={(e) => e.key === "Enter" && loadFromUrl()}
           />
         </div>
-        <Button onClick={loadFromUrl} disabled={loadingUrl || !url}>
+        <Button
+          onClick={loadFromUrl}
+          disabled={loadingUrl || !url}
+          className="h-11 rounded-full px-5"
+        >
           {loadingUrl ? <Loader2 className="size-4 animate-spin" /> : "Fetch"}
         </Button>
       </div>
@@ -69,23 +72,35 @@ export function InputPanel({ text, setText }: Props) {
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Or paste your English article here…"
-        className="min-h-[140px] font-sans text-base resize-y"
+        className="min-h-[140px] text-base resize-y rounded-2xl bg-surface border-border-subtle"
       />
 
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={() => setText(SAMPLE)}>
-          <FileText className="size-4" /> Load sample
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setText(SAMPLE)}
+          className="rounded-full border-border-subtle"
+        >
+          <FileText className="size-3.5" /> Load sample
         </Button>
-        <Button variant="outline" size="sm" onClick={copy} disabled={!text}>
-          <Copy className="size-4" /> Copy
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={copy}
+          disabled={!text}
+          className="rounded-full border-border-subtle"
+        >
+          <Copy className="size-3.5" /> Copy
         </Button>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setText("")}
           disabled={!text}
+          className="rounded-full"
         >
-          <Eraser className="size-4" /> Clear
+          <Eraser className="size-3.5" /> Clear
         </Button>
       </div>
     </div>
