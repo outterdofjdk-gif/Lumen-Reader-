@@ -67,16 +67,20 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
     let audioUrl = entry?.audio || "";
     if (audioUrl.startsWith("//")) audioUrl = "https:" + audioUrl;
     if (audioUrl) {
+      setNoAudio(false);
       try {
-        if (audioRef.current) {
-          audioRef.current.pause();
-        }
+        if (audioRef.current) audioRef.current.pause();
         const audio = new Audio(audioUrl);
         audioRef.current = audio;
-        await audio.play().catch(() => {});
-      } catch {
-        /* ignore */
+        await audio.play().catch((err) => {
+          console.warn("[dict] Audio status: play failed", word, err);
+        });
+      } catch (err) {
+        console.warn("[dict] Audio status: error", word, err);
       }
+    } else {
+      setNoAudio(true);
+      console.warn("[dict] Audio status: missing (no Cambridge audio for)", word);
     }
   };
 
