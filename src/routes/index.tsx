@@ -72,6 +72,8 @@ function Home() {
   const [text, setText] = useState("");
   const [spokenWords, setSpokenWords] = useState<string[]>([]);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [popupWord, setPopupWord] = useState<string | null>(null);
+  const [popupOpen, setPopupOpen] = useState(false);
 
   useEffect(() => {
     setPrefs(loadPrefs());
