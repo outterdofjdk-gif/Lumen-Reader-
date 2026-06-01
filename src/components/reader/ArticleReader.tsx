@@ -22,8 +22,7 @@ export function ArticleReader({
 }: Props) {
   type Token =
     | { kind: "text"; value: string; key: string }
-    | { kind: "word"; value: string; key: string }
-    | { kind: "para-break"; key: string };
+    | { kind: "word"; value: string; key: string };
 
   const paragraphs = useMemo(() => {
     return text
