@@ -9,6 +9,7 @@ type Props = {
   rate: number;
   showTranslations: boolean;
   onSpoken: (word: string) => void;
+  onOpenPopup: (word: string) => void;
 };
 
 export function ArticleReader({
