@@ -1,106 +1,113 @@
-# Premium Redesign Plan — Lumen Reader
+# Lumen Reader — Premium Upgrade Plan
 
-A full visual + UX overhaul inspired by Medium, Substack, Kindle, Apple, and Notion. The **reading experience is the #1 priority** — typography, width, line-height, and spacing come first; animations are subtle accents, never decoration.
+Your message has two parts that conflict near the end ("Do not redesign the application" appears in the pronunciation section, while the top half asks for a homepage/article redesign and a Settings page). I'm reading the final line as scoped to the pronunciation improvement only ("don't redesign *just to* improve pronunciation"), and treating the top half as the real product brief. Tell me if I should flip that.
 
----
-
-## 1. Design system (`src/styles.css`)
-
-Rebuild the token layer:
-
-- **Typography**: switch to a serif reading stack (`Source Serif 4` / `Newsreader`) for article body, `Inter Tight` for UI, `IBM Plex Sans Arabic` for Arabic translations. Load via Google Fonts.
-- **Colors**: refined neutral palette (warm paper `oklch(0.985 0.004 85)` light / deep ink `oklch(0.16 0.012 250)` dark), single accent (`oklch(0.55 0.13 240)`). Adds `--surface`, `--surface-hover`, `--border-subtle`, `--reading-bg`.
-- **Shadows**: layered premium shadows (`--shadow-card`, `--shadow-elevated`, `--shadow-popover`).
-- **Animations**: new keyframes — `fade-up`, `tooltip-in`, `shimmer`, `progress`. Standard `--ease-out-quart` curve.
-- **Spacing scale**: reading-specific tokens (`--reading-max: 760px`, `--reading-lh: 1.85`, `--reading-pp: 1.5em`).
-
-## 2. Reading experience (highest priority)
-
-Rewrite `ArticleReader.tsx` + new `ReadingShell.tsx`:
-
-- Content column **760–820px**, centered, generous side padding on mobile.
-- Serif body, `font-size: 19px` (desktop) / `17px` (mobile), `line-height: 1.85`, paragraph spacing `1.5em`.
-- First paragraph drop-cap (subtle).
-- Section dividers, blockquote styling, optimized hyphenation.
-- **Sticky reading-progress bar** at top (1.5px accent line that fills with scroll).
-- Estimated read time + word count chip above title.
-- Smooth scroll, scroll-margin for headings.
-
-## 3. Word interaction (preserve current behavior)
-
-`InteractiveWord.tsx` polish only — keep Cambridge audio + Arabic-only tooltip rule the user already locked in:
-
-- Tooltip: rounded `8px`, layered shadow, `tooltip-in` animation (fade + 4px rise), Arabic in IBM Plex Sans Arabic.
-- Underline becomes a thin dotted accent that thickens on hover.
-- Active word gets a soft highlight ring while audio plays.
-- No modal, no popup, no IPA/examples — unchanged.
-
-## 4. Homepage (`src/routes/index.tsx`)
-
-Restructured into distinct sections:
-
-- **Hero**: large editorial headline, supporting deck, primary CTA "Start reading", secondary "Browse articles". Subtle animated gradient mesh background.
-- **Quick start strip**: paste / paste-from-clipboard / load sample — compact, not a giant card.
-- **Featured article** (first feed item, large 2-col layout).
-- **Trending grid** (rest of feed, refined cards).
-- **Your saved words** preview (if any).
-- Scroll-reveal animations (`fade-up` on intersection).
-
-## 5. Article cards (`ArticlesFeed.tsx`)
-
-- Larger image, 4:3 ratio, rounded `14px`, subtle gradient overlay.
-- Source badge as pill, date as muted micro-copy.
-- Title in serif, 2-line clamp, hover lifts card `-2px` with elevated shadow.
-- Read button becomes full-width ghost-to-solid on hover.
-
-## 6. Navigation
-
-New `SiteHeader.tsx`:
-
-- Sticky, blurred translucent (`backdrop-blur-xl bg-background/70`), hairline bottom border that appears on scroll.
-- Logo + minimal nav (Read · Articles · Saved) + dark-mode toggle + search icon.
-- Mobile: clean hamburger drawer with large tap targets.
-
-## 7. Dark mode
-
-Recalibrated tokens — deep blue-black background, high-contrast warm-white text, accent shifted to slightly brighter blue for AA contrast on dark.
-
-## 8. Mobile polish
-
-- Bottom safe-area padding.
-- Active-state press feedback (`active:scale-[0.98]`) on cards/buttons.
-- Larger tap targets (44px min) on interactive words on touch devices.
-- Control bar collapses into a floating bottom sheet trigger on mobile.
-
-## 9. Animation system
-
-All via Tailwind + CSS keyframes (no new deps):
-
-- Page mount: staggered `fade-up`.
-- Card hover: shadow + translate.
-- Buttons: subtle scale on press.
-- Reading-progress bar: width transition.
-- Tooltip: spring-feel zoom-in.
-- Loading: shimmer skeletons replacing plain pulse.
+I will **not** rebuild from scratch. All existing features stay: word tooltip (Arabic only + Cambridge-style audio), vocabulary saving, statistics, control bar, dev.to feed fallback.
 
 ---
 
-## Files to change
+## 1. Content sources (real articles, multi-source)
 
-**Edit**: `src/styles.css`, `src/routes/index.tsx`, `src/routes/__root.tsx`, `src/components/reader/ArticleReader.tsx`, `src/components/reader/ArticlesFeed.tsx`, `src/components/reader/InteractiveWord.tsx`, `src/components/reader/ControlBar.tsx`, `src/components/reader/InputPanel.tsx`, `src/components/reader/SavedWords.tsx`, `src/components/reader/Statistics.tsx`.
+New `src/lib/sources/` module with one adapter per source, all returning the same `FeedArticle` shape (now extended with `category`, `author`, `readingTime`).
 
-**New**: `src/components/layout/SiteHeader.tsx`, `src/components/reader/ReadingShell.tsx`, `src/components/reader/ReadingProgress.tsx`, `src/components/home/Hero.tsx`, `src/components/home/FeaturedArticle.tsx`, `src/components/ui/shimmer.tsx`.
+- **Guardian** — open JSON API (`content.guardianapis.com`), requires free API key. I'll wire it via a Lovable secret `GUARDIAN_API_KEY` and a server function so the key never ships to the browser.
+- **NPR, BBC Learning English, VOA Learning English, Reuters/AP via Google News, Smithsonian, Nat Geo, Aeon, News in Levels** — RSS feeds fetched through a TanStack server function (`src/lib/api/feeds.functions.ts`) that parses XML server-side and returns normalized JSON. Avoids CORS and keeps the client lean.
+- **British Council** — RSS where available, otherwise skipped gracefully.
+- Aggregator merges all sources, dedupes by normalized title + URL hash, validates (title ≥ 20 chars, description present, image present for cards), sorts by published date.
+- Cached in `localStorage` for 24 h (already the pattern) plus per-category caching. A "Refresh" button forces a re-fetch.
 
-**Delete**: `src/components/reader/WordPopup.tsx` (already unused).
+If the user later doesn't want to add a Guardian key, the system still works on the RSS-only sources.
 
-## Out of scope (intentionally)
+## 2. Categories
 
-- No new functionality beyond what already exists (no auth, no backend, no new article sources).
-- Word tooltip behavior locked per prior decisions (Arabic only, Cambridge audio only).
-- No new animation libraries — Tailwind + CSS only to keep bundle lean.
+Categories derived from source + RSS tags, normalized to: News, Technology, Science, Business, History, Culture, Travel, Stories, Learning English. Category page = filtered feed view.
 
-## Verification
+Routes added:
+- `/category/$slug` — category feed
+- `/saved` — saved articles
+- `/vocabulary` — saved words (moves the current SavedWords panel here)
+- `/history` — reading history
+- `/settings` — settings page
 
-After implementation: load `/`, capture full-page screenshots at 1440×900 and 390×844 in light + dark, verify reading width, tooltip, audio, and scroll progress.
+Homepage gets new strips: **Trending** (most recent across sources), **Latest**, **Recommended** (simple heuristic: categories you've opened most), **Continue reading** (from history).
 
-Approve to proceed, or tell me what to adjust.
+## 3. Article layout polish
+
+`ArticleReader.tsx` already has the serif reading shell. I'll add:
+- Hero cover image at top (16:9, rounded, subtle gradient overlay)
+- Header meta row: source logo (small favicon) · source name · author · published date · reading time · category pill
+- "View original article" link → opens source URL in new tab with `rel="noopener noreferrer"`
+- Slightly wider max-width tokens exposed in settings
+
+## 4. Settings page (`/settings`)
+
+Persisted in `localStorage` under `reader.settings.v1`, exposed via a `useReaderSettings()` hook so every component reacts live:
+- Theme: Light / Dark / System
+- Font size (slider 16–22 px)
+- Reading width (narrow 640 / standard 760 / wide 880)
+- Line height (1.6 / 1.75 / 1.9)
+- Auto-pronunciation on click (on/off)
+- Translation popup duration (1.5 / 2.5 / 4 s)
+- Pronunciation accent preference order (drag list: UK, US, …)
+- Article language filter (English level: any / A2 / B1 / B2 — used to weight Learning English sources)
+- Reading progress bar on/off
+
+Control bar stays but becomes a quick-access subset of these.
+
+## 5. Pronunciation coverage (multi-source fallback)
+
+`src/lib/dictionary.ts` extended (no UI change):
+1. Cambridge UK → 2. Cambridge US (already via dictionaryapi.dev, which proxies Cambridge audio)
+3. Merriam-Webster Learners API (needs free `MERRIAM_WEBSTER_API_KEY` secret — server function proxies it)
+4. Free Dictionary / dictionaryapi.dev (already used)
+5. Wiktionary REST audio (`en.wiktionary.org/api/rest_v1`) — free, no key
+6. Google TTS *only as last resort if* user enables it in settings; **off by default** to honor your earlier "no browser TTS / no Google voice" rule. I'll leave a setting toggle so you decide.
+
+For each clicked word:
+- Try original form, then lemma candidates (existing logic)
+- Walk source list in priority order until audio found
+- Cache `{ word, audioUrl, source }` in `localStorage` (`reader.pron.cache.v1`) — future clicks are instant
+- Console logs: `[pron] word | source: cambridge-uk | url: …` and `[pron] FAILED word (tried: cambridge, mw, wiktionary, …)`
+
+Tooltip UI unchanged. Muted speaker icon still shown when *all* sources fail.
+
+## 6. Homepage redesign (mobile-first)
+
+Keeps current Hero but tightens it for 384 px viewport (your current preview). Below it:
+- Horizontal scrollable category chips (sticky on scroll)
+- "Continue reading" rail (if history exists)
+- Featured article (full-bleed cover)
+- Trending grid (1 col mobile, 2 col tablet, 3 col desktop)
+- Latest list (compact rows with thumbnail)
+- Saved words preview (existing component, restyled)
+
+Smooth `fade-up` reveal already in styles.css — extended with stagger.
+
+## 7. Source attribution
+
+`src/lib/sources/registry.ts` maps each source id → `{ name, homepage, faviconUrl, color }`. Used in cards and article header.
+
+## 8. Reading history
+
+New `src/lib/history.ts` — appends `{ articleId, title, source, openedAt, scrollPercent }` on article open and on scroll. `/history` route renders the list with resume button.
+
+---
+
+## Technical details
+
+- **Secrets needed** (I'll request them via `add_secret` after you approve): `GUARDIAN_API_KEY` (optional), `MERRIAM_WEBSTER_API_KEY` (optional). The app works without either — coverage just narrows.
+- **Server functions** for RSS parsing and key-bearing APIs so nothing leaks to the browser and CORS is avoided.
+- **No new heavy deps.** I'll add `fast-xml-parser` (tiny, edge-safe) for RSS.
+- **Files added**: `src/lib/sources/{registry,guardian,rss,aggregator}.ts`, `src/lib/api/feeds.functions.ts`, `src/lib/api/pronunciation.functions.ts`, `src/lib/history.ts`, `src/lib/settings.ts`, `src/hooks/useReaderSettings.ts`, `src/routes/settings.tsx`, `src/routes/saved.tsx`, `src/routes/vocabulary.tsx`, `src/routes/history.tsx`, `src/routes/category.$slug.tsx`, `src/components/home/{CategoryChips,ContinueReading,TrendingRail,LatestList}.tsx`, `src/components/reader/ArticleHeader.tsx`.
+- **Files edited**: `src/lib/dictionary.ts`, `src/lib/articles.ts`, `src/components/reader/{ArticleReader,ArticlesFeed,ControlBar,SavedWords,InteractiveWord}.tsx`, `src/components/layout/SiteHeader.tsx`, `src/routes/index.tsx`, `src/styles.css` (settings-driven CSS vars).
+- **Preserved**: Cambridge-only audio default, Arabic-only tooltip behavior, current word-tooltip animation, vocabulary saving format.
+
+---
+
+## Open questions before I start
+
+1. **Guardian + Merriam-Webster API keys** — want me to wire the integrations now and ask you for the keys, or skip them and ship with RSS-only sources + Wiktionary fallback?
+2. **Google TTS last-resort** — keep it strictly off (current rule), or add it as an opt-in toggle in Settings?
+3. **Scope confirmation** — confirm the redesign + Settings page is in scope (your message contained one contradictory line at the end).
+
+Approve and I'll execute the whole plan in one pass. If you want to cut something (e.g. skip history, skip categories), tell me now.
