@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { VolumeX } from "lucide-react";
 import { lookupWord } from "@/lib/dictionary";
 import { translateWord } from "@/lib/reader-cache";
+import { loadSettings } from "@/lib/settings";
 import type { Accent } from "@/lib/tts";
 
 type Props = {
@@ -31,7 +32,8 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
 
   const scheduleClose = () => {
     clearTimer();
-    timerRef.current = window.setTimeout(() => setOpen(false), 2600);
+    const duration = loadSettings().popupDurationMs;
+    timerRef.current = window.setTimeout(() => setOpen(false), duration);
   };
 
   useEffect(() => {
@@ -53,6 +55,8 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
     setLoading(true);
     onSpoken?.(word);
 
+    const settings = loadSettings();
+
     const [entry, tr] = await Promise.all([
       lookupWord(word),
       showTranslations ? translateWord(word) : Promise.resolve(""),
@@ -64,19 +68,20 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
 
     let audioUrl = entry?.audio || "";
     if (audioUrl.startsWith("//")) audioUrl = "https:" + audioUrl;
-    if (audioUrl) {
+    if (audioUrl && settings.autoPronounce) {
       setNoAudio(false);
       try {
         if (audioRef.current) audioRef.current.pause();
         const audio = new Audio(audioUrl);
+        audio.playbackRate = settings.rate || 1;
         audioRef.current = audio;
         await audio.play().catch((err) => {
-          console.warn("[dict] Audio status: play failed", word, err);
+          console.warn("[pron] play failed", word, err);
         });
       } catch (err) {
-        console.warn("[dict] Audio status: error", word, err);
+        console.warn("[pron] audio error", word, err);
       }
-    } else {
+    } else if (!audioUrl) {
       setNoAudio(true);
     }
   };
@@ -101,10 +106,7 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
         >
           <span>{loading ? "…" : translation}</span>
           {!loading && noAudio && (
-            <VolumeX
-              aria-label="No pronunciation available"
-              className="size-3 opacity-60"
-            />
+            <VolumeX aria-label="No pronunciation available" className="size-3 opacity-60" />
           )}
           <span className="absolute left-1/2 -translate-x-1/2 top-full size-0 border-x-[5px] border-x-transparent border-t-[5px] border-t-foreground" />
         </span>
