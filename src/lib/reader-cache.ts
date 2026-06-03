@@ -36,24 +36,47 @@ export function setCached(word: string, translation: string) {
   }
 }
 
+const NO_TRANSLATION = "لا يوجد ترجمة متاحة";
+
+async function tryMyMemory(word: string): Promise<string> {
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|ar`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const t = (data?.responseData?.translatedText as string)?.trim();
+    if (!t) return "";
+    // Reject fallback where API returns the original English word
+    if (t.toLowerCase() === word.toLowerCase()) return "";
+    if (!/[\u0600-\u06FF]/.test(t)) return ""; // require Arabic chars
+    return t;
+  } catch {
+    return "";
+  }
+}
+
+async function tryLingva(word: string): Promise<string> {
+  try {
+    const res = await fetch(`https://lingva.ml/api/v1/en/ar/${encodeURIComponent(word)}`);
+    if (!res.ok) return "";
+    const data = await res.json();
+    const t = (data?.translation as string)?.trim();
+    if (!t || t.toLowerCase() === word.toLowerCase()) return "";
+    if (!/[\u0600-\u06FF]/.test(t)) return "";
+    return t;
+  } catch {
+    return "";
+  }
+}
+
 export async function translateWord(word: string): Promise<string> {
   const cached = getCached(word);
   if (cached) return cached;
 
-  // MyMemory free API, no key required
-  try {
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
-      word,
-    )}&langpair=en|ar`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const t = (data?.responseData?.translatedText as string)?.trim();
-    if (t) {
-      setCached(word, t);
-      return t;
-    }
-  } catch {
-    /* fallthrough */
-  }
-  return "—";
+  const primary = await tryMyMemory(word);
+  if (primary) { setCached(word, primary); return primary; }
+
+  const secondary = await tryLingva(word);
+  if (secondary) { setCached(word, secondary); return secondary; }
+
+  return NO_TRANSLATION;
 }

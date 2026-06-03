@@ -58,44 +58,44 @@
 :root {
   --radius: 0.875rem;
 
-  /* Warm paper light theme — Medium/Substack inspired */
-  --background: oklch(0.985 0.004 85);
-  --foreground: oklch(0.21 0.012 250);
+  /* Warm beige premium theme — Kindle/Medium inspired */
+  --background: oklch(0.965 0.012 80);
+  --foreground: oklch(0.22 0.014 60);
 
-  --reading-bg: oklch(0.992 0.003 85);
-  --surface: oklch(1 0 0);
-  --surface-hover: oklch(0.97 0.005 85);
+  --reading-bg: oklch(0.975 0.014 82);
+  --surface: oklch(0.985 0.010 82);
+  --surface-hover: oklch(0.95 0.014 80);
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.012 250);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.012 250);
+  --card: oklch(0.985 0.010 82);
+  --card-foreground: oklch(0.22 0.014 60);
+  --popover: oklch(0.99 0.008 82);
+  --popover-foreground: oklch(0.22 0.014 60);
 
-  --primary: oklch(0.52 0.14 250);
-  --primary-foreground: oklch(0.99 0 0);
+  --primary: oklch(0.40 0.06 50);
+  --primary-foreground: oklch(0.985 0.008 82);
 
-  --secondary: oklch(0.96 0.006 240);
-  --secondary-foreground: oklch(0.26 0.02 250);
+  --secondary: oklch(0.93 0.014 80);
+  --secondary-foreground: oklch(0.28 0.014 60);
 
-  --muted: oklch(0.96 0.006 240);
-  --muted-foreground: oklch(0.50 0.018 250);
+  --muted: oklch(0.93 0.014 80);
+  --muted-foreground: oklch(0.48 0.014 60);
 
-  --accent: oklch(0.95 0.018 245);
-  --accent-foreground: oklch(0.26 0.02 250);
+  --accent: oklch(0.92 0.020 75);
+  --accent-foreground: oklch(0.28 0.014 60);
 
-  --destructive: oklch(0.60 0.22 25);
+  --destructive: oklch(0.58 0.20 25);
   --destructive-foreground: oklch(0.99 0 0);
 
-  --border: oklch(0.91 0.006 240);
-  --border-subtle: oklch(0.94 0.005 240);
-  --input: oklch(0.91 0.006 240);
-  --ring: oklch(0.52 0.14 250);
+  --border: oklch(0.88 0.014 78);
+  --border-subtle: oklch(0.92 0.012 78);
+  --input: oklch(0.88 0.014 78);
+  --ring: oklch(0.55 0.10 60);
 
-  --word: oklch(0.50 0.14 250);
-  --word-active: oklch(0.55 0.16 150);
-  --success: oklch(0.60 0.15 150);
+  --word: oklch(0.22 0.014 60);
+  --word-active: oklch(0.50 0.14 150);
+  --success: oklch(0.58 0.14 150);
   --success-foreground: oklch(0.99 0 0);
-  --tint: oklch(0.975 0.012 240);
+  --tint: oklch(0.94 0.018 75);
 
   --shadow-card: 0 1px 2px oklch(0.2 0.02 250 / 0.04), 0 1px 1px oklch(0.2 0.02 250 / 0.03);
   --shadow-elevated:
@@ -220,42 +220,32 @@
 }
 
 @layer components {
-  /* Interactive word — premium tap target */
+  /* Interactive word — visually identical to body text, only subtle affordance */
   .interactive-word {
-    color: var(--color-word);
+    color: inherit;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 3px;
     padding: 0 1px;
-    transition:
-      color 160ms var(--ease-out-quart),
-      background-color 160ms var(--ease-out-quart);
-    background-image: linear-gradient(
-      to right,
-      color-mix(in oklab, var(--color-word) 55%, transparent),
-      color-mix(in oklab, var(--color-word) 55%, transparent)
-    );
-    background-position: 0 100%;
-    background-repeat: no-repeat;
-    background-size: 100% 1px;
+    text-decoration: none;
+    background-image: none;
+    transition: background-color 160ms var(--ease-out-quart), color 160ms var(--ease-out-quart);
   }
   .interactive-word:hover {
-    background-color: color-mix(in oklab, var(--color-word) 10%, transparent);
-    background-size: 100% 2px;
+    background-color: color-mix(in oklab, var(--color-foreground) 7%, transparent);
   }
   .interactive-word.speaking {
     color: var(--color-word-active);
-    background-color: color-mix(in oklab, var(--color-word-active) 14%, transparent);
-    background-image: none;
+    background-color: color-mix(in oklab, var(--color-word-active) 12%, transparent);
   }
 
-  /* Reading container — Medium/Substack proportions */
+  /* Reading container — premium Kindle/Medium proportions */
   .reading-prose {
     font-family: var(--font-display);
-    font-size: 19px;
-    line-height: 1.85;
+    font-size: var(--reading-fs-user, 21px);
+    line-height: var(--reading-lh-user, 1.9);
     letter-spacing: -0.003em;
     color: var(--color-foreground);
-    max-width: 38rem; /* ~720px text column; outer container caps width */
+    max-width: 44rem; /* ~720-780px column */
     margin-inline: auto;
   }
   .reading-prose p { margin-bottom: 1.5em; }
@@ -264,12 +254,24 @@
     font-family: var(--font-display);
     letter-spacing: -0.018em;
     line-height: 1.2;
-    margin-top: 2em;
+    margin-top: 1.8em;
     margin-bottom: 0.6em;
     font-weight: 600;
   }
+  .reading-prose blockquote {
+    border-left: 3px solid var(--color-border);
+    padding-left: 1.2em;
+    margin: 1.6em 0;
+    font-style: italic;
+    color: var(--color-muted-foreground);
+  }
+  .reading-prose img {
+    width: 100%;
+    border-radius: 0.75rem;
+    margin: 1.8em 0;
+  }
   @media (max-width: 640px) {
-    .reading-prose { font-size: 17.5px; line-height: 1.78; }
+    .reading-prose { font-size: var(--reading-fs-user, 19px); line-height: var(--reading-lh-user, 1.85); }
   }
 
   /* Drop cap on first paragraph */
