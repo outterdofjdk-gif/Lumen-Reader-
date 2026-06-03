@@ -164,6 +164,7 @@ export function ArticleReader({
           })}
         </p>
       ))}
+      <KeyVocabulary text={text} />
     </article>
   );
 }
