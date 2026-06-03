@@ -62,12 +62,28 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
       showTranslations ? translateWord(word) : Promise.resolve(""),
     ]);
 
-    setTranslation(tr || "—");
+    setTranslation(tr || "لا يوجد ترجمة متاحة");
     setLoading(false);
     scheduleClose();
 
     let audioUrl = entry?.audio || "";
     if (audioUrl.startsWith("//")) audioUrl = "https:" + audioUrl;
+
+    const playSpeechSynthesis = () => {
+      try {
+        if (typeof window === "undefined" || !("speechSynthesis" in window)) return false;
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(word);
+        u.lang = settings.accentOrder?.[0] === "us" ? "en-US" : "en-GB";
+        u.rate = settings.rate || 1;
+        window.speechSynthesis.speak(u);
+        console.log("[pron]", word, "| source: speechSynthesis (fallback)");
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
     if (audioUrl && settings.autoPronounce) {
       setNoAudio(false);
       try {
@@ -76,11 +92,16 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
         audio.playbackRate = settings.rate || 1;
         audioRef.current = audio;
         await audio.play().catch((err) => {
-          console.warn("[pron] play failed", word, err);
+          console.warn("[pron] play failed, falling back to TTS", word, err);
+          playSpeechSynthesis();
         });
       } catch (err) {
         console.warn("[pron] audio error", word, err);
+        playSpeechSynthesis();
       }
+    } else if (!audioUrl && settings.autoPronounce) {
+      const ok = playSpeechSynthesis();
+      setNoAudio(!ok);
     } else if (!audioUrl) {
       setNoAudio(true);
     }
