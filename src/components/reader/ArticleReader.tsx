@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { ExternalLink, Clock, User } from "lucide-react";
+import { KeyVocabulary } from "./KeyVocabulary";
 import { InteractiveWord } from "./InteractiveWord";
 import { sourceFor } from "@/lib/sources/registry";
 import type { Accent } from "@/lib/tts";
