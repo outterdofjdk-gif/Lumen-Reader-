@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
 import { ExternalLink, Clock, User } from "lucide-react";
 import { KeyVocabulary } from "./KeyVocabulary";
 import { InteractiveWord } from "./InteractiveWord";
@@ -15,7 +15,17 @@ type Props = {
   onSpoken: (word: string) => void;
   onOpenPopup?: (word: string) => void;
   article?: FeedArticle | null;
+  readingMode?: "normal" | "kindle";
 };
+
+// Virtual scrolling constants
+const VIEWPORT_BUFFER = 3; // paragraphs to keep above/below viewport
+const PARAGRAPH_ESTIMATE_HEIGHT = 100; // rough estimate for initial render
+
+type Token =
+  | { kind: "text"; value: string; key: string }
+  | { kind: "word"; value: string; key: string }
+  | { kind: "media"; type: "image" | "video"; src: string; alt?: string; key: string };
 
 export function ArticleReader({
   text,
@@ -25,11 +35,10 @@ export function ArticleReader({
   showTranslations,
   onSpoken,
   article,
+  readingMode = "normal",
 }: Props) {
-  type Token =
-    | { kind: "text"; value: string; key: string }
-    | { kind: "word"; value: string; key: string };
-
+  const [visibleRange, setVisibleRange] = useState({ start: 0, end: 10 });
+  const containerRef = useRef<HTMLDivElement>(null);
   const paragraphs = useMemo(() => {
     return text
       .replace(/\r\n/g, "\n")
@@ -38,26 +47,103 @@ export function ArticleReader({
       .filter(Boolean);
   }, [text]);
 
-  const tokenize = (chunk: string, pIdx: number): Token[] => {
-    const out: Token[] = [];
-    chunk.split(/(\s+)/).forEach((piece, i) => {
+  // Markdown & Media Parser: Handle images, videos, and markdown syntax from Jina AI
+  const parseMarkdown = (chunk: string): Token[] => {
+    const tokens: Token[] = [];
+    let lastIndex = 0;
+
+    // Regex to match markdown image syntax: ![alt](url)
+    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    // Regex to match markdown video syntax: ![video](url.mp4) or similar
+    const videoRegex = /!\[(?:video|Video|VIDEO)\]\(([^)+\.(?:mp4|webm|ogg))\)/gi;
+
+    let match;
+    const allMatches: Array<{ type: "image" | "video"; start: number; end: number; alt?: string; src: string }> = [];
+
+    // Find all images
+    while ((match = imageRegex.exec(chunk)) !== null) {
+      allMatches.push({ type: "image", start: match.index, end: match.index + match[0].length, alt: match[1], src: match[2] });
+    }
+
+    // Find all videos
+    while ((match = videoRegex.exec(chunk)) !== null) {
+      allMatches.push({ type: "video", start: match.index, end: match.index + match[0].length, src: match[1] });
+    }
+
+    // Sort by start position
+    allMatches.sort((a, b) => a.start - b.start);
+
+    for (const media of allMatches) {
+      // Add text before media
+      if (lastIndex < media.start) {
+        const textBefore = chunk.substring(lastIndex, media.start);
+        if (textBefore) {
+          tokenizeAndAdd(textBefore, tokens);
+        }
+      }
+      // Add media token
+      tokens.push({
+        kind: "media",
+        type: media.type,
+        src: media.src,
+        alt: media.alt,
+        key: `${media.type}-${media.start}`,
+      });
+      lastIndex = media.end;
+    }
+
+    // Add remaining text
+    if (lastIndex < chunk.length) {
+      const textAfter = chunk.substring(lastIndex);
+      if (textAfter) {
+        tokenizeAndAdd(textAfter, tokens);
+      }
+    }
+
+    return tokens;
+  };
+
+  // Helper to tokenize regular text into words and whitespace
+  const tokenizeAndAdd = (chunk: string, tokens: Token[]): void => {
+    const parts = chunk.split(/(\s+)/);
+    parts.forEach((piece, i) => {
       if (!piece) return;
       if (/^\s+$/.test(piece)) {
-        out.push({ kind: "text", value: piece, key: `s${pIdx}-${i}` });
+        tokens.push({ kind: "text", value: piece, key: `s-${i}-${Math.random()}` });
         return;
       }
-      const m = piece.match(/^([^A-Za-z0-9'’-]*)([A-Za-z][A-Za-z'’-]*)(.*)$/);
+      const m = piece.match(/^([^A-Za-z0-9''-]*)([A-Za-z][A-Za-z''-]*)(.*)$/);
       if (!m) {
-        out.push({ kind: "text", value: piece, key: `t${pIdx}-${i}` });
+        tokens.push({ kind: "text", value: piece, key: `t-${i}-${Math.random()}` });
         return;
       }
       const [, pre, word, post] = m;
-      if (pre) out.push({ kind: "text", value: pre, key: `p${pIdx}-${i}` });
-      out.push({ kind: "word", value: word, key: `w${pIdx}-${i}` });
-      if (post) out.push({ kind: "text", value: post, key: `po${pIdx}-${i}` });
+      if (pre) tokens.push({ kind: "text", value: pre, key: `p-${i}-${Math.random()}` });
+      tokens.push({ kind: "word", value: word, key: `w-${i}-${Math.random()}` });
+      if (post) tokens.push({ kind: "text", value: post, key: `po-${i}-${Math.random()}` });
     });
-    return out;
   };
+
+  // Virtual scrolling handler
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || paragraphs.length <= 20) return; // No virtualization for short articles
+
+    const handleScroll = () => {
+      const scrollTop = container.scrollTop;
+      const viewportHeight = container.clientHeight;
+      const estimatedStart = Math.max(0, Math.floor(scrollTop / PARAGRAPH_ESTIMATE_HEIGHT) - VIEWPORT_BUFFER);
+      const estimatedEnd = Math.min(
+        paragraphs.length,
+        Math.ceil((scrollTop + viewportHeight) / PARAGRAPH_ESTIMATE_HEIGHT) + VIEWPORT_BUFFER,
+      );
+
+      setVisibleRange({ start: estimatedStart, end: estimatedEnd });
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [paragraphs.length]);
 
   if (!text.trim()) {
     return (
@@ -79,8 +165,15 @@ export function ArticleReader({
   const readMin = Math.max(1, Math.round(words / 220));
   const src = article ? sourceFor(article.source) : null;
 
+  const kindleStyles = readingMode === "kindle" ? "max-w-2xl mx-auto font-serif" : "";
+  const fontFamily = readingMode === "kindle" ? { fontFamily: "Georgia, 'Merriweather', serif" } : {};
+
   return (
-    <article className="reading-prose" style={{ fontSize: `${fontSize}px` }}>
+    <article
+      ref={containerRef}
+      className={`reading-prose ${kindleStyles} ${readingMode === "kindle" ? "overflow-y-auto" : ""}`}
+      style={{ fontSize: `${fontSize}px`, ...fontFamily, height: readingMode === "kindle" ? "100vh" : "auto" }}
+    >
       {article ? (
         <header className="not-prose mb-8 sm:mb-12">
           {article.image && (
@@ -99,7 +192,10 @@ export function ArticleReader({
             <span className="size-1 rounded-full bg-muted-foreground/40" />
             <span>{new Date(article.publishedAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</span>
             <span className="size-1 rounded-full bg-muted-foreground/40" />
-            <span className="inline-flex items-center gap-1"><Clock className="size-3" />{article.readingTime || readMin} min read</span>
+            <span className="inline-flex items-center gap-1">
+              <Clock className="size-3" />
+              {article.readingTime || readMin} min read
+            </span>
             <span className="size-1 rounded-full bg-muted-foreground/40" />
             <span>{words.toLocaleString()} words</span>
             {article.category && (
@@ -145,25 +241,57 @@ export function ArticleReader({
         )
       )}
 
-      {bodyParagraphs.map((p, idx) => (
-        <p key={`p-${idx}`}>
-          {tokenize(p, idx).map((tok) => {
-            if (tok.kind === "word") {
-              return (
-                <InteractiveWord
-                  key={tok.key}
-                  word={tok.value}
-                  accent={accent}
-                  rate={rate}
-                  showTranslations={showTranslations}
-                  onSpoken={onSpoken}
-                />
-              );
-            }
-            return <span key={tok.key}>{tok.value}</span>;
-          })}
-        </p>
-      ))}
+      {/* Virtualized paragraph rendering for long articles */}
+      <div>
+        {bodyParagraphs.map((p, idx) => {
+          // Skip paragraphs outside visible range
+          if (idx < visibleRange.start || idx >= visibleRange.end) {
+            return <div key={`p-${idx}`} style={{ height: `${PARAGRAPH_ESTIMATE_HEIGHT}px` }} />;
+          }
+
+          const tokens = parseMarkdown(p);
+          return (
+            <p key={`p-${idx}`}>
+              {tokens.map((tok) => {
+                if (tok.kind === "word") {
+                  return (
+                    <InteractiveWord
+                      key={tok.key}
+                      word={tok.value}
+                      accent={accent}
+                      rate={rate}
+                      showTranslations={showTranslations}
+                      onSpoken={onSpoken}
+                    />
+                  );
+                }
+                if (tok.kind === "media") {
+                  if (tok.type === "image") {
+                    return (
+                      <figure key={tok.key} className="my-4 flex flex-col items-center">
+                        <img src={tok.src} alt={tok.alt || "Article image"} className="max-w-full rounded-lg shadow-md" />
+                        {tok.alt && <figcaption className="text-sm text-muted-foreground mt-2 italic">{tok.alt}</figcaption>}
+                      </figure>
+                    );
+                  }
+                  if (tok.type === "video") {
+                    return (
+                      <div key={tok.key} className="my-4 flex justify-center">
+                        <video controls className="max-w-full rounded-lg shadow-md" style={{ maxHeight: "400px" }}>
+                          <source src={tok.src} />
+                          Your browser does not support the video tag.
+                        </video>
+                      </div>
+                    );
+                  }
+                }
+                return <span key={tok.key}>{tok.value}</span>;
+              })}
+            </p>
+          );
+        })}
+      </div>
+
       <KeyVocabulary text={text} />
     </article>
   );

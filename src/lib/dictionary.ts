@@ -5,7 +5,8 @@ export type DictMeaning = {
 
 export type DictEntry = {
   word: string;
-  phonetic?: string;
+  phonetic?: string; // IPA pronunciation
+  syllables?: string; // Syllable breakdown (e.g., "hel-lo")
   audio?: string;
   audioSource?: string;
   meanings: DictMeaning[];
@@ -114,9 +115,17 @@ async function fetchFromDictionaryApi(
     const phoneticObj = first.phonetics?.find(
       (p: { text?: string; audio?: string }) => p.text || p.audio,
     );
+
+    // Extract IPA phonetic (prioritize)
+    const phonetic = first.phonetic || phoneticObj?.text || "";
+
+    // Extract syllables if available
+    const syllables = first.syllables?.list?.join("-") || "";
+
     const entry: DictEntry = {
       word: first.word,
-      phonetic: first.phonetic || phoneticObj?.text,
+      phonetic,
+      syllables,
       audio: audios[0]?.url,
       audioSource: audios[0]?.source,
       meanings: (first.meanings || []).map((m: any) => ({
@@ -134,7 +143,7 @@ async function fetchFromDictionaryApi(
   }
 }
 
-/** Wiktionary REST: extract audio URL when available. */
+/** Wiktionary REST: extract audio URL and IPA when available. */
 async function fetchFromWiktionary(key: string): Promise<AudioCandidate | null> {
   try {
     const res = await fetch(
@@ -170,6 +179,10 @@ async function lookupOnce(
   return dapi;
 }
 
+/**
+ * Improved lookup with prioritized IPA and syllables.
+ * Prefers high-quality audio sources before falling back to speech synthesis.
+ */
 export async function lookupWord(word: string): Promise<DictEntry | null> {
   const original = word.toLowerCase();
   console.log("[pron] Word clicked:", word);
@@ -196,28 +209,39 @@ export async function lookupWord(word: string): Promise<DictEntry | null> {
     const r = await lookupOnce(k);
     if (!bestEntry && r.entry) bestEntry = r.entry;
     for (const a of r.audios) allAudios.push(a);
-    if (allAudios.length) break; // first key that yields any audio
+    // Only break if we found HIGH-QUALITY audio (cambridge sources)
+    if (allAudios.some((a) => a.source.startsWith("cambridge"))) break;
   }
 
-  // Fallback: Wiktionary
-  if (!allAudios.length) {
+  // Fallback: Wiktionary only if no good audio found yet
+  if (!allAudios.some((a) => a.source.startsWith("cambridge"))) {
     const w = await fetchFromWiktionary(original);
     if (w) allAudios.push(w);
   }
 
   if (allAudios.length) {
-    const chosen = allAudios[0];
+    // Prioritize high-quality sources over fallback
+    const prioritized = allAudios.sort((a, b) => {
+      const scoreA = a.source.startsWith("cambridge") ? 0 : a.source === "merriam-webster" ? 1 : 2;
+      const scoreB = b.source.startsWith("cambridge") ? 0 : b.source === "merriam-webster" ? 1 : 2;
+      return scoreA - scoreB;
+    });
+
+    const chosen = prioritized[0];
     setPron(original, chosen.url, chosen.source);
     console.log("[pron]", original, "| source:", chosen.source, "| url:", chosen.url);
     return {
       ...(bestEntry || { word: original, meanings: [] }),
       audio: chosen.url,
       audioSource: chosen.source,
+      phonetic: bestEntry?.phonetic,
+      syllables: bestEntry?.syllables,
     };
   }
 
+  // No audio found - but still return best entry with IPA + syllables for reference
   console.warn(
-    "[pron] FAILED",
+    "[pron] No audio found",
     original,
     "(tried:",
     tried.join(", "),
