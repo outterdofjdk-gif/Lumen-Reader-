@@ -55,7 +55,7 @@ export function ArticleReader({
     // Regex to match markdown image syntax: ![alt](url)
     const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
     // Regex to match markdown video syntax: ![video](url.mp4) or similar
-    const videoRegex = /!\[(?:video|Video|VIDEO)\]\(([^)+\.(?:mp4|webm|ogg))\)/gi;
+    const videoRegex = /!\[(?:video|Video|VIDEO)\]\(([^)]+\.(?:mp4|webm|ogg))\)/gi;
 
     let match;
     const allMatches: Array<{ type: "image" | "video"; start: number; end: number; alt?: string; src: string }> = [];
