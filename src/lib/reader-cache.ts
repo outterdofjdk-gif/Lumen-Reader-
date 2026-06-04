@@ -38,15 +38,15 @@ export function setCached(word: string, translation: string) {
 
 const NO_TRANSLATION = "لا يوجد ترجمة متاحة";
 
-async function tryMyMemory(word: string): Promise<string> {
+async function tryMyMemory(query: string): Promise<string> {
   try {
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|ar`;
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(query)}&langpair=en|ar`;
     const res = await fetch(url);
     const data = await res.json();
     const t = (data?.responseData?.translatedText as string)?.trim();
     if (!t) return "";
-    // Reject fallback where API returns the original English word
-    if (t.toLowerCase() === word.toLowerCase()) return "";
+    // For single words, reject if API returns the original English word
+    if (t.toLowerCase() === query.toLowerCase()) return "";
     if (!/[\u0600-\u06FF]/.test(t)) return ""; // require Arabic chars
     return t;
   } catch {
@@ -54,13 +54,15 @@ async function tryMyMemory(word: string): Promise<string> {
   }
 }
 
-async function tryLingva(word: string): Promise<string> {
+async function tryLingva(query: string): Promise<string> {
   try {
-    const res = await fetch(`https://lingva.ml/api/v1/en/ar/${encodeURIComponent(word)}`);
+    const res = await fetch(`https://lingva.ml/api/v1/en/ar/${encodeURIComponent(query)}`);
     if (!res.ok) return "";
     const data = await res.json();
     const t = (data?.translation as string)?.trim();
-    if (!t || t.toLowerCase() === word.toLowerCase()) return "";
+    if (!t) return "";
+    // Only reject single-word fallback for simple words
+    if (query.split(" ").length === 1 && t.toLowerCase() === query.toLowerCase()) return "";
     if (!/[\u0600-\u06FF]/.test(t)) return "";
     return t;
   } catch {
@@ -68,15 +70,36 @@ async function tryLingva(word: string): Promise<string> {
   }
 }
 
-export async function translateWord(word: string): Promise<string> {
+/**
+ * Contextual Translation: Accepts word + optional context (sentence) for better translation.
+ * Solves the "bank" problem: "bank" (financial) vs "bank" (river) depends on context.
+ *
+ * @param word - The word to translate
+ * @param context - Optional full sentence containing the word, for context-aware translation
+ * @returns Arabic translation
+ */
+export async function translateWord(word: string, context?: string): Promise<string> {
+  // Check cache for the word alone first
   const cached = getCached(word);
   if (cached) return cached;
 
-  const primary = await tryMyMemory(word);
-  if (primary) { setCached(word, primary); return primary; }
+  // Use full context if available, otherwise just the word
+  const query = context && context.length > word.length ? context : word;
 
-  const secondary = await tryLingva(word);
-  if (secondary) { setCached(word, secondary); return secondary; }
+  // Try primary translation service
+  const primary = await tryMyMemory(query);
+  if (primary) {
+    // Cache the result for the word
+    setCached(word, primary);
+    return primary;
+  }
+
+  // Try secondary translation service
+  const secondary = await tryLingva(query);
+  if (secondary) {
+    setCached(word, secondary);
+    return secondary;
+  }
 
   return NO_TRANSLATION;
 }

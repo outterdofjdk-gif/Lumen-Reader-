@@ -12,13 +12,16 @@ type Props = {
   showTranslations: boolean;
   onSpoken?: (word: string) => void;
   onOpenPopup?: (word: string) => void;
+  context?: string; // Full sentence context for better translation
 };
 
-export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
+export function InteractiveWord({ word, showTranslations, onSpoken, context }: Props) {
   const [open, setOpen] = useState(false);
   const [translation, setTranslation] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [noAudio, setNoAudio] = useState(false);
+  const [ipa, setIpa] = useState<string>(""); // IPA pronunciation
+  const [syllables, setSyllables] = useState<string>(""); // Syllable breakdown
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ref = useRef<HTMLSpanElement | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -57,12 +60,15 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
 
     const settings = loadSettings();
 
+    // Pass context to translation API for better contextual understanding
     const [entry, tr] = await Promise.all([
       lookupWord(word),
-      showTranslations ? translateWord(word) : Promise.resolve(""),
+      showTranslations ? translateWord(word, context) : Promise.resolve(""),
     ]);
 
     setTranslation(tr || "لا يوجد ترجمة متاحة");
+    setIpa(entry?.phonetic || ""); // Display IPA if available
+    setSyllables(entry?.syllables || ""); // Display syllables if available
     setLoading(false);
     scheduleClose();
 
@@ -119,16 +125,39 @@ export function InteractiveWord({ word, showTranslations, onSpoken }: Props) {
         <span
           role="tooltip"
           dir="rtl"
-          className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-40 whitespace-nowrap rounded-lg bg-foreground text-background text-[13px] font-medium px-2.5 py-1.5 inline-flex items-center gap-1.5 font-arabic"
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-40 rounded-lg bg-foreground text-background text-[13px] font-medium px-3 py-2 shadow-lg max-w-xs"
           style={{
             animation: "var(--animate-tooltip-in)",
             boxShadow: "var(--shadow-popover)",
+            width: "auto",
+            whiteSpace: "normal",
           }}
         >
-          <span>{loading ? "…" : translation}</span>
-          {!loading && noAudio && (
-            <VolumeX aria-label="No pronunciation available" className="size-3 opacity-60" />
+          {/* Main translation */}
+          <span className="block">{loading ? "…" : translation}</span>
+
+          {/* IPA Pronunciation - Prioritized */}
+          {!loading && ipa && (
+            <span className="block text-[11px] text-background/70 mt-1">
+              {ipa}
+            </span>
           )}
+
+          {/* Syllables breakdown */}
+          {!loading && syllables && (
+            <span className="block text-[11px] text-background/70">
+              {syllables}
+            </span>
+          )}
+
+          {/* No audio indicator */}
+          {!loading && noAudio && (
+            <span className="inline-flex items-center gap-1 mt-1">
+              <VolumeX aria-label="No pronunciation available" className="size-3 opacity-60" />
+            </span>
+          )}
+
+          {/* Pointer arrow */}
           <span className="absolute left-1/2 -translate-x-1/2 top-full size-0 border-x-[5px] border-x-transparent border-t-[5px] border-t-foreground" />
         </span>
       )}
