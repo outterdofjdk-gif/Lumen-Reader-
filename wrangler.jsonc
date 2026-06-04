@@ -5,10 +5,13 @@
   "observability": {
     "enabled": true
   },
-  "main": "@tanstack/react-start/server-entry",
+  "main": ".output/server/index.mjs",
   "assets": {
-    "directory": "./dist/client",
+    "directory": ".output/public",
     "binding": "ASSETS"
+  },
+  "build": {
+    "command": "bun run build"
   },
   "compatibility_flags": [
     "nodejs_compat"
